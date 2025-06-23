@@ -27,13 +27,17 @@ npm install axios ethers socks-proxy-agent @noble/hashes
 
 ## 🚀 Penggunaan
 
-accounts.txt: Buat file ini di dalam folder proyek Anda.
+## accounts.txt: 
+Buat file ini di dalam folder proyek Anda.
 
 Setiap baris di file ini harus berisi satu private key Ethereum Anda.
 Contoh:
 0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef
 0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890
-proxy.txt (Opsional): Buat file ini di dalam folder proyek Anda jika Anda akan menggunakan proxy pribadi.
+
+
+## proxy.txt 
+(Opsional): Buat file ini di dalam folder proyek Anda jika Anda akan menggunakan proxy pribadi.
 
 Setiap baris di file ini harus berisi satu alamat proxy (misalnya, http://user:pass@ip:port atau socks5://ip:port).
 Contoh:
