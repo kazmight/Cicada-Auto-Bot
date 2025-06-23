@@ -1,12 +1,10 @@
-// cicada.js
-
 const { Wallet, utils } = require('ethers');
 const axios = require('axios');
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const fs = require('fs/promises');
-const readline = require('readline'); // Import readline for user input
+const readline = require('readline');
 
-// ANSI Escape Codes for coloring
+
 const Fore = {
     RED: '\x1b[31m',
     GREEN: '\x1b[32m',
@@ -45,7 +43,7 @@ class Cicada {
         this.BASE_HEADERS = {};
         this.PRIVY_API = "https://auth.privy.io/api/v1/siwe";
         this.BASE_API = "https://campaign.cicada.finance/api";
-        this.REF_CODE = "cAOX8bPw"; 
+        this.REF_CODE = "cAOX8bPw";
         this.proxies = [];
         this.proxyIndex = 0;
         this.accountProxies = {};
@@ -61,21 +59,11 @@ class Cicada {
     }
 
     clearTerminal() {
-        process.stdout.write('\x1Bc'); // ANSI escape code to clear screen
+        process.stdout.write('\x1Bc'); 
     }
 
     log(message) {
-        const now = new Date();
-        const formattedTime = this.wibFormatter.format(now);
-        // Replace DD/MM/YY with MM/DD/YY for consistency with Python's %x
-        const [month, day, year] = formattedTime.split(',')[0].split('/');
-        const timePart = formattedTime.split(',')[1].trim();
-        const finalFormattedTime = `${month}/${day}/${year.slice(-2)} ${timePart} WIB`;
-
-        console.log(
-            `${Fore.CYAN}${Style.BRIGHT}[ ${finalFormattedTime} ]${Style.RESET_ALL}` +
-            `${Fore.WHITE}${Style.BRIGHT} | ${Style.RESET_ALL}${message}`
-        );
+        console.log(message);
     }
 
     welcome() {
@@ -90,10 +78,12 @@ ${Fore.MAGENTA}${Style.BRIGHT}
  ╚════╝ ╚═╝ ╚════  ╚═╝  ╚═╝╚═════╝ ╚═╝  ╚═╝  ╚═════╝  ╚════╝    ╚═╝
 
                      Script Author : Kazmight
-             Join Channel Telegram : Dasar Pemulung
+            Join Channel Telegram : Dasar Pemulung
      =====================================================
 ${Style.RESET_ALL}
-      
+`;
+        console.log(banner);
+    }
 
     formatSeconds(seconds) {
         const hours = Math.floor(seconds / 3600);
@@ -106,12 +96,12 @@ ${Style.RESET_ALL}
     async loadProxies(useProxyChoice) {
         const filename = "proxy.txt";
         try {
-            if (useProxyChoice === 1) {
+            if (useProxyChoice === 1) { 
                 this.log(`${Fore.CYAN}${Style.BRIGHT}Fetching free proxies from proxyscrape...${Style.RESET_ALL}`);
                 const response = await axios.get("https://api.proxyscrape.com/v4/free-proxy-list/get?request=display_proxies&proxy_format=protocolipport&format=text", { timeout: 30000 });
                 await fs.writeFile(filename, response.data);
                 this.proxies = response.data.split('\n').map(line => line.trim()).filter(line => line);
-            } else {
+            } else { 
                 if (!await fs.access(filename).then(() => true).catch(() => false)) {
                     this.log(`${Fore.RED}${Style.BRIGHT}File ${filename} Not Found.${Style.RESET_ALL}`);
                     return;
@@ -141,7 +131,7 @@ ${Style.RESET_ALL}
         if (schemes.some(scheme => proxy.startsWith(scheme))) {
             return proxy;
         }
-        return `http://${proxy}`; // Default to http if no scheme is found
+        return `http://${proxy}`; 
     }
 
     getNextProxyForAccount(account) {
@@ -177,7 +167,7 @@ ${Style.RESET_ALL}
 
     async generatePayload(privateKey, address, nonce) {
         try {
-            const timestamp = new Date().toISOString().slice(0, -5) + 'Z'; //YYYY-MM-DDTHH:mm:ss.SSSZ, slice for ms
+            const timestamp = new Date().toISOString().slice(0, -5) + 'Z'; 
             const message = `campaign.cicada.finance wants you to sign in with your Ethereum account:\n${address}\n\nBy signing, you are proving you own this wallet and logging in. This does not initiate a transaction or cost any fees.\n\nURI: https://campaign.cicada.finance\nVersion: 1\nChain ID: 56\nNonce: ${nonce}\nIssued At: ${timestamp}\nResources:\n- https://privy.io`;
 
             const wallet = new Wallet(privateKey);
@@ -208,52 +198,57 @@ ${Style.RESET_ALL}
     }
 
     async printQuestion() {
-        const rl = readline.createInterface({
-            input: process.stdin,
-            output: process.stdout
-        });
+        let rl; 
+        try {
+            rl = readline.createInterface({
+                input: process.stdin,
+                output: process.stdout
+            });
 
-        const question = (query) => new Promise(resolve => rl.question(query, resolve));
+            const question = (query) => new Promise(resolve => rl.question(query, resolve));
 
-        let choose;
-        while (true) {
-            try {
-                console.log(`${Fore.WHITE}${Style.BRIGHT}1. Run With Proxy${Style.RESET_ALL}`);
-                console.log(`${Fore.WHITE}${Style.BRIGHT}2. Run Without Proxy${Style.RESET_ALL}`);
-                const input = await question(`${Fore.BLUE}${Style.BRIGHT}Choose [1/2] -> ${Style.RESET_ALL}`);
-                choose = parseInt(input.trim(), 10);
-
-                if ([1, 2].includes(choose)) {
-                    const proxyType = (
-                        choose === 1 ? "With Proxy" :
-                        "Without"
-                    );
-                    console.log(`${Fore.GREEN}${Style.BRIGHT}Run ${proxyType} Proxy Selected.${Style.RESET_ALL}`);
-                    break;
-                } else {
-                    console.log(`${Fore.RED}${Style.BRIGHT}Please enter either 1, 2.${Style.RESET_ALL}`);
-                }
-            } catch (error) {
-                console.log(`${Fore.RED}${Style.BRIGHT}Invalid input. Enter a number (1, 2.).${Style.RESET_ALL}`);
-            }
-        }
-
-        let rotate = false;
-        if ([1, 2].includes(choose)) {
+            let choose;
             while (true) {
-                const input = await question(`${Fore.BLUE}${Style.BRIGHT}Rotate Invalid Proxy? [y/n] -> ${Style.RESET_ALL}`);
-                const rotateInput = input.trim().toLowerCase();
-                if (['y', 'n'].includes(rotateInput)) {
-                    rotate = (rotateInput === 'y');
-                    break;
-                } else {
-                    console.log(`${Fore.RED}${Style.BRIGHT}Invalid input. Enter 'y' or 'n'.${Style.RESET_ALL}`);
+                try {
+                    console.log(`${Fore.WHITE}${Style.BRIGHT}1. Run With Proxy${Style.RESET_ALL}`);
+                    console.log(`${Fore.WHITE}${Style.BRIGHT}2. Run Without Proxy${Style.RESET_ALL}`);
+                    const input = await question(`${Fore.BLUE}${Style.BRIGHT}Choose [1-2] -> ${Style.RESET_ALL}`);
+                    choose = parseInt(input.trim(), 10);
+
+                    if ([1, 2].includes(choose)) {
+                        const proxyType = (
+                            choose === 1 ? "With Proxy" :
+                            "Without"
+                        );
+                        console.log(`${Fore.GREEN}${Style.BRIGHT}Run ${proxyType} Proxy Selected.${Style.RESET_ALL}`);
+                        break;
+                    } else {
+                        console.log(`${Fore.RED}${Style.BRIGHT}Please enter either 1 or 2.${Style.RESET_ALL}`);
+                    }
+                } catch (error) {
+                    console.log(`${Fore.RED}${Style.BRIGHT}Invalid input. Enter a number (1 or 2).${Style.RESET_ALL}`);
                 }
             }
-        }
 
-        rl.close();
-        return { choose, rotate };
+            let rotate = false;
+            if (choose === 1) { 
+                while (true) {
+                    const input = await question(`${Fore.BLUE}${Style.BRIGHT}Rotate Invalid Proxy? [y/n] -> ${Style.RESET_ALL}`);
+                    const rotateInput = input.trim().toLowerCase();
+                    if (['y', 'n'].includes(rotateInput)) {
+                        rotate = (rotateInput === 'y');
+                        break;
+                    } else {
+                        console.log(`${Fore.RED}${Style.BRIGHT}Invalid input. Enter 'y' or 'n'.${Style.RESET_ALL}`);
+                    }
+                }
+            }
+            return { choose, rotate };
+        } finally {
+            if (rl) { 
+                rl.close();
+            }
+        }
     }
 
     async checkConnection(proxy = null) {
@@ -279,8 +274,7 @@ ${Style.RESET_ALL}
             throw new Error(`HTTP Status: ${response.status}`);
         } catch (e) {
             this.log(
-                `${Fore.CYAN}${Style.BRIGHT}Status    :${Style.RESET_ALL}` +
-                `${Fore.RED}${Style.BRIGHT} Connection Not 200 OK ${Style.RESET_ALL}` +
+                `${Fore.RED}${Style.BRIGHT}Connection Not 200 OK ${Style.RESET_ALL}` +
                 `${Fore.MAGENTA}${Style.BRIGHT}-${Style.RESET_ALL}` +
                 `${Fore.YELLOW}${Style.BRIGHT} ${e.message || e}${Style.RESET_ALL}`
             );
@@ -306,7 +300,7 @@ ${Style.RESET_ALL}
             }
         }
 
-        await new Promise(resolve => setTimeout(resolve, 3000)); // asyncio.sleep(3)
+        await new Promise(resolve => setTimeout(resolve, 3000)); 
 
         for (let attempt = 0; attempt < retries; attempt++) {
             try {
@@ -315,17 +309,16 @@ ${Style.RESET_ALL}
                     timeout: 60000,
                     httpsAgent: agent,
                     httpAgent: agent,
-                    // axios handles SSL automatically, no explicit ssl: false needed
+                    
                 });
                 return response.data;
             } catch (e) {
                 if (attempt < retries - 1) {
-                    await new Promise(resolve => setTimeout(resolve, 5000)); // asyncio.sleep(5)
+                    await new Promise(resolve => setTimeout(resolve, 5000)); 
                     continue;
                 }
                 this.log(
-                    `${Fore.CYAN}${Style.BRIGHT}Status    :${Style.RESET_ALL}` +
-                    `${Fore.RED}${Style.BRIGHT} GET Nonce Failed ${Style.RESET_ALL}` +
+                    `${Fore.RED}${Style.BRIGHT}GET Nonce Failed ${Style.RESET_ALL}` +
                     `${Fore.MAGENTA}${Style.BRIGHT}-${Style.RESET_ALL}` +
                     `${Fore.YELLOW}${Style.BRIGHT} ${e.message || e}${Style.RESET_ALL}`
                 );
@@ -352,14 +345,13 @@ ${Style.RESET_ALL}
         if (proxy) {
             try {
                 agent = new SocksProxyAgent(proxy);
-                console.log(`Using proxy: ${proxy}`); // Debugging proxy
             } catch (e) {
                 this.log(`${Fore.RED}${Style.BRIGHT}Invalid Proxy URL: ${e.message}${Style.RESET_ALL}`);
                 return null;
             }
         }
 
-        await new Promise(resolve => setTimeout(resolve, 3000)); // asyncio.sleep(3)
+        await new Promise(resolve => setTimeout(resolve, 3000)); 
 
         for (let attempt = 0; attempt < retries; attempt++) {
             try {
@@ -372,12 +364,11 @@ ${Style.RESET_ALL}
                 return response.data;
             } catch (e) {
                 if (attempt < retries - 1) {
-                    await new Promise(resolve => setTimeout(resolve, 5000)); // asyncio.sleep(5)
+                    await new Promise(resolve => setTimeout(resolve, 5000)); 
                     continue;
                 }
                 this.log(
-                    `${Fore.CYAN}${Style.BRIGHT}Status    :${Style.RESET_ALL}` +
-                    `${Fore.RED}${Style.BRIGHT} Login Failed ${Style.RESET_ALL}` +
+                    `${Fore.RED}${Style.BRIGHT}Login Failed ${Style.RESET_ALL}` +
                     `${Fore.MAGENTA}${Style.BRIGHT}-${Style.RESET_ALL}` +
                     `${Fore.YELLOW}${Style.BRIGHT} ${e.message || e}${Style.RESET_ALL}`
                 );
@@ -403,7 +394,7 @@ ${Style.RESET_ALL}
             }
         }
 
-        await new Promise(resolve => setTimeout(resolve, 3000)); // asyncio.sleep(3)
+        await new Promise(resolve => setTimeout(resolve, 3000)); 
 
         for (let attempt = 0; attempt < retries; attempt++) {
             try {
@@ -419,15 +410,14 @@ ${Style.RESET_ALL}
                 return response.data;
             } catch (e) {
                 if (e.response && [400, 403].includes(e.response.status)) {
-                    return null; // Equivalent to Python's handling of 400/403
+                    return null; 
                 }
                 if (attempt < retries - 1) {
-                    await new Promise(resolve => setTimeout(resolve, 5000)); // asyncio.sleep(5)
+                    await new Promise(resolve => setTimeout(resolve, 5000)); 
                     continue;
                 }
                 this.log(
-                    `${Fore.CYAN}${Style.BRIGHT}Status    :${Style.RESET_ALL}` +
-                    `${Fore.RED}${Style.BRIGHT} Verify Failed ${Style.RESET_ALL}` +
+                    `${Fore.RED}${Style.BRIGHT}Verify Failed ${Style.RESET_ALL}` +
                     `${Fore.MAGENTA}${Style.BRIGHT}-${Style.RESET_ALL}` +
                     `${Fore.YELLOW}${Style.BRIGHT} ${e.message || e}${Style.RESET_ALL}`
                 );
@@ -453,7 +443,7 @@ ${Style.RESET_ALL}
             }
         }
 
-        await new Promise(resolve => setTimeout(resolve, 3000)); // asyncio.sleep(3)
+        await new Promise(resolve => setTimeout(resolve, 3000)); 
 
         for (let attempt = 0; attempt < retries; attempt++) {
             try {
@@ -466,12 +456,11 @@ ${Style.RESET_ALL}
                 return response.data;
             } catch (e) {
                 if (attempt < retries - 1) {
-                    await new Promise(resolve => setTimeout(resolve, 5000)); // asyncio.sleep(5)
+                    await new Promise(resolve => setTimeout(resolve, 5000)); 
                     continue;
                 }
                 this.log(
-                    `${Fore.CYAN}${Style.BRIGHT}Task Lists:${Style.RESET_ALL}` +
-                    `${Fore.RED}${Style.BRIGHT} GET Lists Failed ${Style.RESET_ALL}` +
+                    `${Fore.RED}${Style.BRIGHT}GET Task Lists Failed ${Style.RESET_ALL}` +
                     `${Fore.MAGENTA}${Style.BRIGHT}-${Style.RESET_ALL}` +
                     `${Fore.YELLOW}${Style.BRIGHT} ${e.message || e}${Style.RESET_ALL}`
                 );
@@ -500,7 +489,7 @@ ${Style.RESET_ALL}
             }
         }
 
-        await new Promise(resolve => setTimeout(resolve, 3000)); // asyncio.sleep(3)
+        await new Promise(resolve => setTimeout(resolve, 3000)); 
 
         for (let attempt = 0; attempt < retries; attempt++) {
             try {
@@ -514,20 +503,20 @@ ${Style.RESET_ALL}
             } catch (e) {
                 if (e.response && e.response.status === 409) {
                     this.log(
-                        `${Fore.MAGENTA}${Style.BRIGHT}   ● ${Style.RESET_ALL}` +
+                        `${Fore.MAGENTA}${Style.BRIGHT}●${Style.RESET_ALL}` +
                         `${Fore.WHITE}${Style.BRIGHT}${title}${Style.RESET_ALL}` +
-                        `${Fore.YELLOW}${Style.BRIGHT} Already Completed ${Style.RESET_ALL}`
+                        `${Fore.YELLOW}${Style.BRIGHT}Already Completed ${Style.RESET_ALL}`
                     );
                     return null;
                 }
                 if (attempt < retries - 1) {
-                    await new Promise(resolve => setTimeout(resolve, 5000)); // asyncio.sleep(5)
+                    await new Promise(resolve => setTimeout(resolve, 5000)); 
                     continue;
                 }
                 this.log(
-                    `${Fore.MAGENTA}${Style.BRIGHT}   ● ${Style.RESET_ALL}` +
+                    `${Fore.MAGENTA}${Style.BRIGHT}●${Style.RESET_ALL}` +
                     `${Fore.WHITE}${Style.BRIGHT}${title}${Style.RESET_ALL}` +
-                    `${Fore.RED}${Style.BRIGHT} Not Completed ${Style.RESET_ALL}` +
+                    `${Fore.RED}${Style.BRIGHT}Not Completed ${Style.RESET_ALL}` +
                     `${Fore.MAGENTA}${Style.BRIGHT}-${Style.RESET_ALL}` +
                     `${Fore.YELLOW}${Style.BRIGHT} ${e.message || e}${Style.RESET_ALL}`
                 );
@@ -540,8 +529,8 @@ ${Style.RESET_ALL}
         while (true) {
             const proxy = useProxy ? this.getNextProxyForAccount(address) : null;
             this.log(
-                `${Fore.CYAN}${Style.BRIGHT}Proxy     :${Style.RESET_ALL}` +
-                `${Fore.WHITE}${Style.BRIGHT} ${proxy || 'N/A'} ${Style.RESET_ALL}`
+                `${Fore.CYAN}${Style.BRIGHT}Proxy: ${Style.RESET_ALL}` +
+                `${Fore.WHITE}${Style.BRIGHT}${proxy || 'N/A'} ${Style.RESET_ALL}`
             );
 
             const check = await this.checkConnection(proxy);
@@ -550,7 +539,7 @@ ${Style.RESET_ALL}
             }
 
             if (rotateProxy) {
-                this.rotateProxyForAccount(address); // Rotate to next proxy
+                this.rotateProxyForAccount(address); 
                 await new Promise(resolve => setTimeout(resolve, 5000));
                 continue;
             }
@@ -584,8 +573,7 @@ ${Style.RESET_ALL}
                 this.headerCookies[address] = `privy-token=${this.accessTokens[address]}; privy-id-token=${this.identityTokens[address]}`;
 
                 this.log(
-                    `${Fore.CYAN}${Style.BRIGHT}Status    :${Style.RESET_ALL}` +
-                    `${Fore.GREEN}${Style.BRIGHT} Login Success ${Style.RESET_ALL}`
+                    `${Fore.GREEN}${Style.BRIGHT}Login Success ${Style.RESET_ALL}`
                 );
                 return true;
             }
@@ -598,13 +586,13 @@ ${Style.RESET_ALL}
         if (logined) {
             const proxy = useProxy ? this.getNextProxyForAccount(address) : null;
 
-            await this.userVerify(address, proxy); // Not checking return value as per Python script
+            await this.userVerify(address, proxy); 
 
             const taskLists = await this.taskLists(address, proxy);
             if (taskLists) {
                 this.log(`${Fore.CYAN}${Style.BRIGHT}Task Lists:${Style.RESET_ALL}`);
-
-                let allTasks = taskLists.filter(task => task); // Direct tasks
+                
+                let allTasks = taskLists.filter(task => task); 
                 taskLists.forEach(task => {
                     if (task.subtasks) {
                         allTasks.push(...task.subtasks.filter(subTask => subTask));
@@ -619,7 +607,7 @@ ${Style.RESET_ALL}
                     const added = await this.addPoints(address, taskId, title, proxy);
                     if (added) {
                         this.log(
-                            `${Fore.MAGENTA}${Style.BRIGHT}   🟢 ${Style.RESET_ALL}` +
+                            `${Fore.MAGENTA}${Style.BRIGHT}🟢${Style.RESET_ALL}` +
                             `${Fore.WHITE}${Style.BRIGHT}${title}${Style.RESET_ALL}` +
                             `${Fore.GREEN}${Style.BRIGHT} Is Completed ${Style.RESET_ALL}` +
                             `${Fore.MAGENTA}${Style.BRIGHT}-${Style.RESET_ALL}` +
@@ -644,7 +632,7 @@ ${Style.RESET_ALL}
 
         const { choose: useProxyChoice, rotate: rotateProxy } = await this.printQuestion();
 
-        const useProxy = [1, 2].includes(useProxyChoice);
+        const useProxy = (useProxyChoice === 1); 
 
         while (true) {
             this.clearTerminal();
@@ -658,23 +646,19 @@ ${Style.RESET_ALL}
                 await this.loadProxies(useProxyChoice);
             }
 
-            const separator = "=".repeat(25);
+
             for (const account of accounts) {
                 if (account) {
                     const address = this.generateAddress(account);
-                    this.log(
-                        `${Fore.CYAN}${Style.BRIGHT}${separator}[${Style.RESET_ALL}` +
-                        `${Fore.WHITE}${Style.BRIGHT} ${this.maskAccount(address)} ${Style.RESET_ALL}` +
-                        `${Fore.CYAN}${Style.BRIGHT}]${separator}${Style.RESET_ALL}`
-                    );
-
-                    if (!address) {
+                    if (address) { 
+                        this.log(`${Fore.WHITE}${Style.BRIGHT}Wallet: ${this.maskAccount(address)}${Style.RESET_ALL}`);
+                    } else {
                         this.log(
-                            `${Fore.CYAN}${Style.BRIGHT}Status    :${Style.RESET_ALL}` +
-                            `${Fore.RED}${Style.BRIGHT} Invalid Private Key or Library Version Not Supported ${Style.RESET_ALL}`
+                            `${Fore.RED}${Style.BRIGHT}Invalid Private Key or Library Version Not Supported${Style.RESET_ALL}`
                         );
-                        continue;
+                        continue; 
                     }
+            
 
                     const userAgent = USER_AGENT[Math.floor(Math.random() * USER_AGENT.length)];
 
@@ -709,7 +693,7 @@ ${Style.RESET_ALL}
 
             this.log(`${Fore.CYAN}${Style.BRIGHT}=${Style.RESET_ALL}`.repeat(72));
 
-            let delay = 12 * 60 * 60; // 12 hours in seconds
+            let delay = 12 * 60 * 60; 
             while (delay > 0) {
                 const formattedTime = this.formatSeconds(delay);
                 process.stdout.write(
@@ -717,20 +701,20 @@ ${Style.RESET_ALL}
                     `${Fore.WHITE}${Style.BRIGHT} ${formattedTime} ${Style.RESET_ALL}` +
                     `${Fore.CYAN}${Style.BRIGHT}... ]${Style.RESET_ALL}` +
                     `${Fore.WHITE}${Style.BRIGHT} | ${Style.RESET_ALL}` +
-                    `${Fore.YELLOW}${Style.BRIGHT}All Accounts Has Been Process${Style.RESET_ALL}\r`
+                    `${Fore.YELLOW}${Style.BRIGHT}All Accounts Have Been Processed${Style.RESET_ALL}\r` 
                 );
                 await new Promise(resolve => setTimeout(resolve, 1000));
                 delay -= 1;
             }
-            process.stdout.write('\n'); // Clear the last line of wait message
+            process.stdout.write('\n'); 
         }
     }
 }
 
-// Main execution block
+
 const bot = new Cicada();
 
-// Handle graceful exit on Ctrl+C (SIGINT)
+
 process.on('SIGINT', () => {
     const now = new Date();
     const formattedTime = bot.wibFormatter.format(now);
@@ -741,12 +725,12 @@ process.on('SIGINT', () => {
     console.log(
         `\n${Fore.CYAN}${Style.BRIGHT}[ ${finalFormattedTime} ]${Style.RESET_ALL}` +
         `${Fore.WHITE}${Style.BRIGHT} | ${Style.RESET_ALL}` +
-        `${Fore.RED}${Style.BRIGHT}[ EXIT ] Cicada Auto bot${Style.RESET_ALL}                                       `
+        `${Fore.RED}${Style.BRIGHT}[ EXIT ] Cicada Auto bot${Style.RESET_ALL}                                         `
     );
-    process.exit(0); // Exit cleanly
+    process.exit(0); 
 });
 
-// Start the bot
+
 (async () => {
     try {
         await bot.main();
